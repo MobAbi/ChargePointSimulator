@@ -30,6 +30,7 @@ import eu.chargetime.simulator.commands.*;
 import eu.chargetime.simulator.hardware.*;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Program {
 
@@ -128,11 +129,18 @@ public class Program {
                 System.out.println("Anzahl von " + chargeboxes.size() + " wird um " + increase + " erhoeht");
                 for (int i = 1; i <= increase; i++) {
                     final Integer id = getNextFreeInteger();
+                    doDelay();
                     chargeboxes.put(id, startChargeBox(uriOCPPServer, prefix + int2Str(id)));
                 }
                 System.out.println("Erhoehung done: " + chargeboxes.size());
             }
         }
+    }
+
+    // Etwas Zeit geben zwischen dem Erzeugen der einzelnen Chargebox Threads...
+    private void doDelay() {
+        long delay = ThreadLocalRandom.current().nextInt(5, 25);
+        try { Thread.sleep(delay); } catch (InterruptedException e) {}
     }
 
     private Integer getNextFreeInteger() {
