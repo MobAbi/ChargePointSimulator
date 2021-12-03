@@ -30,6 +30,8 @@ import eu.chargetime.simulator.hardware.*;
 import eu.chargetime.simulator.software.ocpp.CoreEventHandler;
 import eu.chargetime.simulator.software.ocpp.OCPPClient;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class ChargeBox implements Runnable, SendHeartbeatCallback {
 
     private ILock lock;
@@ -88,6 +90,11 @@ public class ChargeBox implements Runnable, SendHeartbeatCallback {
         ocppClient = new OCPPClient(uriOCPPServer, this.identity, new CoreEventHandler(unlockCommand), heartbeatThread);
         new Thread(heartbeatThread).start();
         while (run) {
+            if (!ocppClient.isConnected()) {
+                ocppClient.doConnect();
+                long delay = ThreadLocalRandom.current().nextInt(1000, 5000);
+                try { Thread.sleep(delay); } catch (InterruptedException e) {}
+            }
             try { Thread.sleep(100); } catch (InterruptedException e) {}
         }
         ocppClient.disconnect();

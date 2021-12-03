@@ -36,36 +36,30 @@ import eu.chargetime.ocpp.model.core.HeartbeatConfirmation;
 
 import java.util.concurrent.CompletionStage;
 
-public class OCPPClient {
+public class OCPPClient implements ClientEvents {
 
+    private final String uri;
+    private final String identiy;
     private final HeartbeatIntervalChange heartbeatIntervalCallback;
     private final ClientCoreProfile coreProfile;
     private JSONClient client;
+    private boolean isConnected;
 
     public OCPPClient(String uri, String identiy, CoreEventHandler handler, HeartbeatIntervalChange heartbeatIntervalCallback) {
+        this.uri = uri;
+        this.identiy = identiy;
         this.heartbeatIntervalCallback = heartbeatIntervalCallback;
         this.coreProfile = new ClientCoreProfile(handler);
         this.client = new JSONClient(coreProfile, identiy);
+        this.isConnected = false;
+    }
 
-        this.client.connect(uri, new ClientEvents() {
-            @Override
-            public void connectionOpened() {
-                System.out.println(identiy + " Connected!");
-                try {
-                    CompletionStage<Confirmation> confirmation = client.send(coreProfile.createBootNotificationRequest("ChargeTimeEU", "Simulator"));
-                    confirmation.whenComplete((confirmationResult, throwable) -> handleBootNotificationResponse(identiy, confirmationResult, throwable));
-                } catch (UnsupportedFeatureException e) {
-                    e.printStackTrace();
-                } catch (OccurenceConstraintException e) {
-                    e.printStackTrace();
-                }
-            }
+    public void doConnect() {
+        this.client.connect(uri, this);
+    }
 
-            @Override
-            public void connectionClosed() {
-                System.out.println(identiy + " Connection closed!");
-            }
-        });
+    public void disconnect() {
+        this.client.disconnect();
     }
 
     public void sendHeartbeat(String identiy) {
@@ -78,10 +72,6 @@ public class OCPPClient {
         } catch (UnsupportedFeatureException e) {
             e.printStackTrace();
         }
-    }
-
-    public void disconnect() {
-        this.client.disconnect();
     }
 
     private void handleBootNotificationResponse(String identiy, Confirmation confirmationResult, Throwable throwable) {
@@ -117,5 +107,29 @@ public class OCPPClient {
                 System.out.println(identiy + " Unerwartete Confirmation erhalten: " + confirmationResult.toString());
             }
         }
+    }
+
+    @Override
+    public void connectionOpened() {
+        System.out.println(identiy + " Connected!");
+        this.isConnected = true;
+        try {
+            CompletionStage<Confirmation> confirmation = client.send(coreProfile.createBootNotificationRequest("ChargeTimeEU", "Simulator"));
+            confirmation.whenComplete((confirmationResult, throwable) -> handleBootNotificationResponse(identiy, confirmationResult, throwable));
+        } catch (UnsupportedFeatureException e) {
+            e.printStackTrace();
+        } catch (OccurenceConstraintException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void connectionClosed() {
+        System.out.println(identiy + " Connection closed!");
+        this.isConnected = false;
+    }
+
+    public boolean isConnected() {
+        return isConnected;
     }
 }
