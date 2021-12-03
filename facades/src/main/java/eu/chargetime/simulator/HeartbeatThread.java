@@ -2,6 +2,8 @@ package eu.chargetime.simulator;
 
 import eu.chargetime.simulator.software.ocpp.HeartbeatIntervalChange;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 class HeartbeatThread implements Runnable, HeartbeatIntervalChange {
     private final SendHeartbeatCallback sendHeartbeatCallback;
     private int heartbeatIntervalSeconds;
@@ -20,12 +22,18 @@ class HeartbeatThread implements Runnable, HeartbeatIntervalChange {
         while (run) {
             final long current = System.currentTimeMillis();
             if (current >= lastCheck + (heartbeatIntervalSeconds*1000)) {
+                doDelay();
                 sendHeartbeat();
                 lastCheck = current;
             }
             try { Thread.sleep(100); } catch (InterruptedException e) {}
             //System.out.println("run()... " + (current - lastCheck)/1000);
         }
+    }
+
+    private void doDelay() {
+        long delay = ThreadLocalRandom.current().nextInt(250, 750);
+        try { Thread.sleep(delay); } catch (InterruptedException e) {}
     }
 
     private void sendHeartbeat() {
