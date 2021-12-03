@@ -46,7 +46,7 @@ public class Program {
     }
 
     public Program(String[] args) {
-        if (args.length != 1 || !isAoderBoderC(args[0])) {
+        if (args.length < 1 || !isAoderBoderC(args[0])) {
             System.err.println("Instanz A, B oder C muss angegeben werden");
             System.exit(-1);
         }
