@@ -30,18 +30,27 @@ import eu.chargetime.simulator.hardware.*;
 import eu.chargetime.simulator.software.ocpp.CoreEventHandler;
 import eu.chargetime.simulator.software.ocpp.OCPPClient;
 
-public class ChargeBox {
+public class ChargeBox implements Runnable, SendHeartbeatCallback {
 
     private ILock lock;
     private IOutlet outlet;
+
+    private boolean run;
+    private final String uriOCPPServer;
+    private final String identity;
 
     public final LockCommand lockCommand;
     public final UnlockCommand unlockCommand;
     public final StatusCommand isLockedCommand;
     public final PluginCommand pluginCommand;
     public final PullPlugCommand pullPluginCommand;
+    private final HeartbeatThread heartbeatThread;
+    private OCPPClient ocppClient;
 
-    public ChargeBox() {
+    public ChargeBox(String uriOCPPServer, String identity) {
+        this.run = true;
+        this.uriOCPPServer = uriOCPPServer;
+        this.identity = identity;
         ChargeBoxFirmware firmware = new ChargeBoxFirmware();
         lock = new SimpleLock(firmware,true);
         outlet = new OutletLockDecorator(new SimpleOutlet(firmware), lock);
@@ -52,6 +61,36 @@ public class ChargeBox {
         pluginCommand = new PluginCommand(outlet);
         pullPluginCommand = new PullPlugCommand(outlet);
 
-        new OCPPClient("http://localhost:8890", new CoreEventHandler(unlockCommand));
+        heartbeatThread = new HeartbeatThread(this);
+    }
+
+    public void stop() {
+        heartbeatThread.stop();
+        this.run = false;
+        System.out.println(identity + " stopped");
+    }
+
+    @Override
+    public void sendHeartbeat() {
+        if (ocppClient != null) {
+            ocppClient.sendHeartbeat(identity);
+        }
+    }
+
+    @Override
+    public String getIdentiy() {
+        return identity;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(identity + " started");
+        ocppClient = new OCPPClient(uriOCPPServer, this.identity, new CoreEventHandler(unlockCommand), heartbeatThread);
+        new Thread(heartbeatThread).start();
+        while (run) {
+            try { Thread.sleep(100); } catch (InterruptedException e) {}
+        }
+        ocppClient.disconnect();
+        ocppClient = null;
     }
 }

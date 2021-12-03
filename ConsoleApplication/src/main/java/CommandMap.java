@@ -27,10 +27,11 @@
 import eu.chargetime.simulator.software.ICommand;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class CommandMap implements ICommandRepository {
 
-    private HashMap<String, ICommand> repository;
+    private Map<String, ICommand> repository;
 
     public CommandMap() {
         repository = new HashMap<>();

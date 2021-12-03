@@ -80,7 +80,7 @@ public class CoreEventHandler implements ClientCoreEventHandler {
 
     @Override
     public UnlockConnectorConfirmation handleUnlockConnectorRequest(UnlockConnectorRequest unlockConnectorRequest) {
-        command.execute();
+        command.execute(null);
         UnlockConnectorConfirmation confirmation = new UnlockConnectorConfirmation();
         confirmation.setStatus(UnlockStatus.Unlocked);
         return confirmation;

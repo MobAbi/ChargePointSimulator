@@ -40,7 +40,7 @@ public class StatusCommand implements ICommand {
     }
 
     @Override
-    public void execute() {
+    public void execute(String param) {
         System.out.println(String.format("isLocked: %s", lock.isLocked()));
         System.out.println(String.format("isPluggedIn: %s", outlet.isPluggedIn()));
     }

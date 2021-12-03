@@ -55,12 +55,12 @@
             <dependency>
             <groupId>eu.chargetime.ocpp</groupId>
             <artifactId>common</artifactId>
-            <version>0.5-SNAPSHOT</version>
+            <version>1.0.1</version>
         </dependency>
         <dependency>
             <groupId>eu.chargetime.ocpp</groupId>
             <artifactId>v1_6</artifactId>
-            <version>0.5-SNAPSHOT</version>
+            <version>1.0.2</version>
         </dependency>
         <dependency>
             <groupId>eu.chargetime.simulator</groupId>

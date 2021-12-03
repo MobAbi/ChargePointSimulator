@@ -38,7 +38,7 @@ public class PullPlugCommand implements ICommand {
     }
 
     @Override
-    public void execute() {
+    public void execute(String param) {
         outlet.pullplug();
     }
 }

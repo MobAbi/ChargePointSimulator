@@ -31,23 +31,29 @@ import eu.chargetime.ocpp.OccurenceConstraintException;
 import eu.chargetime.ocpp.UnsupportedFeatureException;
 import eu.chargetime.ocpp.feature.profile.ClientCoreProfile;
 import eu.chargetime.ocpp.model.Confirmation;
+import eu.chargetime.ocpp.model.core.BootNotificationConfirmation;
+import eu.chargetime.ocpp.model.core.HeartbeatConfirmation;
 
 import java.util.concurrent.CompletionStage;
 
 public class OCPPClient {
 
-    public OCPPClient(String uri, CoreEventHandler handler) {
+    private final HeartbeatIntervalChange heartbeatIntervalCallback;
+    private final ClientCoreProfile coreProfile;
+    private JSONClient client;
 
-        ClientCoreProfile coreProfile = new ClientCoreProfile(handler);
-        JSONClient client = new JSONClient(coreProfile, "OCPPSimulator");
+    public OCPPClient(String uri, String identiy, CoreEventHandler handler, HeartbeatIntervalChange heartbeatIntervalCallback) {
+        this.heartbeatIntervalCallback = heartbeatIntervalCallback;
+        this.coreProfile = new ClientCoreProfile(handler);
+        this.client = new JSONClient(coreProfile, identiy);
 
-        client.connect(uri, new ClientEvents() {
+        this.client.connect(uri, new ClientEvents() {
             @Override
             public void connectionOpened() {
-                System.out.println("Connected!");
+                System.out.println(identiy + " Connected!");
                 try {
                     CompletionStage<Confirmation> confirmation = client.send(coreProfile.createBootNotificationRequest("ChargeTimeEU", "Simulator"));
-                    confirmation.whenComplete((confirmation1, throwable) -> System.out.println("Booted"));
+                    confirmation.whenComplete((confirmationResult, throwable) -> handleBootNotificationResponse(identiy, confirmationResult, throwable));
                 } catch (UnsupportedFeatureException e) {
                     e.printStackTrace();
                 } catch (OccurenceConstraintException e) {
@@ -57,8 +63,59 @@ public class OCPPClient {
 
             @Override
             public void connectionClosed() {
-                System.out.println("Connection lost!");
+                System.out.println(identiy + " Connection closed!");
             }
         });
+    }
+
+    public void sendHeartbeat(String identiy) {
+//        System.out.println("Sende heartbeat...");
+        try {
+            CompletionStage<Confirmation> confirmation = client.send(coreProfile.createHeartbeatRequest());
+            confirmation.whenComplete((confirmationResult, throwable) -> handleHeartbeatResponse(identiy, confirmationResult, throwable));
+        } catch (OccurenceConstraintException e) {
+            e.printStackTrace();
+        } catch (UnsupportedFeatureException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void disconnect() {
+        this.client.disconnect();
+    }
+
+    private void handleBootNotificationResponse(String identiy, Confirmation confirmationResult, Throwable throwable) {
+        if (throwable != null) {
+            System.err.println(identiy + " BootNotificationResponse mit Throwable: " + throwable);
+        } else {
+            if (confirmationResult instanceof BootNotificationConfirmation) {
+                final BootNotificationConfirmation bnc = (BootNotificationConfirmation)confirmationResult;
+                if (bnc.validate()) {
+                    System.out.println(identiy + " BootNotificationConfirmation erhalten: " + confirmationResult.toString());
+                    heartbeatIntervalCallback.setInterval(bnc.getInterval().intValue());
+                } else {
+                    System.err.println(identiy + " Invalide BootNotificationConfirmation erhalten: " + confirmationResult.toString());
+                }
+            } else {
+                System.out.println(identiy + " Unerwartete Confirmation erhalten: " + confirmationResult.toString());
+            }
+        }
+    }
+
+    private void handleHeartbeatResponse(String identiy, Confirmation confirmationResult, Throwable throwable) {
+        if (throwable != null) {
+            System.err.println(identiy + " HeartbeatResponse mit Throwable: " + throwable);
+        } else {
+            if (confirmationResult instanceof HeartbeatConfirmation) {
+                final HeartbeatConfirmation hbc = (HeartbeatConfirmation)confirmationResult;
+                if (hbc.validate()) {
+                    System.out.println(identiy + " HeartbeatConfirmation erhalten: " + confirmationResult.toString());
+                } else {
+                    System.err.println(identiy + " Invalide HeartbeatConfirmation erhalten: " + confirmationResult.toString());
+                }
+            } else {
+                System.out.println(identiy + " Unerwartete Confirmation erhalten: " + confirmationResult.toString());
+            }
+        }
     }
 }

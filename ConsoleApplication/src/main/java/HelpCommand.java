@@ -35,12 +35,11 @@ public class HelpCommand implements ICommand {
     }
 
     @Override
-    public void execute() {
+    public void execute(String param) {
         System.out.println("Available commands:");
 
         for (String command: commands.availableCommands()) {
             System.out.println("  " + command);
         }
-
     }
 }
